@@ -1,247 +1,226 @@
-#include<iostream>
-#include<fstream>
-#include<cstdlib>
-#include<vector>
-#include<map>
+#include <iostream>
+#include <fstream>
+
 using namespace std;
-#define MIN_BALANCE 500
-class InsufficientFunds{};
-class Account
-{
-private:
-long accountNumber;
-string firstName;
-string lastName;
-float balance;
-static long NextAccountNumber;
-public:
-Account(){}
-Account(string fname,string lname,float balance);
-long getAccNo(){return accountNumber;}
-string getFirstName(){return firstName;}
-string getLastName(){return lastName;}
-float getBalance(){return balance;}
-void Deposit(float amount);
-void Withdraw(float amount);
-static void setLastAccountNumber(long accountNumber);
-static long getLastAccountNumber();
-friend ofstream & operator<<(ofstream &ofs,Account &acc);
-friend ifstream & operator>>(ifstream &ifs,Account &acc);
-friend ostream & operator<<(ostream &os,Account &acc);
-};
-long Account::NextAccountNumber=0;
-class Bank
-{
-private:
-map<long,Account> accounts;
-public:
-Bank();
-Account OpenAccount(string fname,string lname,float balance);
-Account BalanceEnquiry(long accountNumber);
-Account Deposit(long accountNumber,float amount);
-Account Withdraw(long accountNumber,float amount);
-void CloseAccount(long accountNumber);
-void ShowAllAccounts();
-~Bank();
-};
-int main()
-{
-Bank b;
-Account acc;
-int choice;
-string fname,lname;
-long accountNumber;
-float balance;
-float amount;
-cout<<"***Banking System***"<<endl;
-do
-{
-cout<<"\n\tSelect one option below ";
-cout<<"\n\t1 Open an Account";
-cout<<"\n\t2 Balance Enquiry";
-cout<<"\n\t3 Deposit";
-cout<<"\n\t4 Withdrawal";
-cout<<"\n\t5 Close an Account";
-cout<<"\n\t6 Show All Accounts";
-cout<<"\n\t7 Quit";
-cout<<"\nEnter your choice: ";
-cin>>choice;
-switch(choice)
-{
-case 1:
-cout<<"Enter First Name: ";
-cin>>fname;
-cout<<"Enter Last Name: ";
-cin>>lname;
-cout<<"Enter initil Balance: ";
-cin>>balance;
-acc=b.OpenAccount(fname,lname,balance);
-cout<<endl<<"Congradulation Account is Created"<<endl;
-cout<<acc;
-break;
-case 2:
-cout<<"Enter Account Number:";
-cin>>accountNumber;
-acc=b.BalanceEnquiry(accountNumber);
-cout<<endl<<"Your Account Details"<<endl;
-cout<<acc;
-break;
-case 3:
-cout<<"Enter Account Number:";
-cin>>accountNumber;
-cout<<"Enter Balance:";
-cin>>amount;
-acc=b.Deposit(accountNumber, amount);
-cout<<endl<<"Amount is Deposited"<<endl;
-cout<<acc;
-break;
-case 4:
-cout<<"Enter Account Number:";
-cin>>accountNumber;
-cout<<"Enter Balance:";
-cin>>amount;
-acc=b.Withdraw(accountNumber, amount);
-cout<<endl<<"Amount Withdrawn"<<endl;
-cout<<acc;
-break;
-case 5:
-cout<<"Enter Account Number:";
-cin>>accountNumber;
-b.CloseAccount(accountNumber);
-cout<<endl<<"Account is Closed"<<endl;
-cout<<acc;
-case 6:
-b.ShowAllAccounts();
-break;
-case 7: break;
-default:
-cout<<"\nEnter corret choice";
-exit(0);
+
+int bookOptions() {
+	cout << "1. Add Book"<< endl;
+	cout << "2. Update Book"<< endl;
+	cout << "3. Delete Book"<< endl;
+	cout << "4. Show All Books"<< endl;
+	cout << "0. Exit"<< endl;
+	cout << "--- Choose any one option ---" << endl;
+	cout << "Enter one option: ";
+
+	int selectedOption = 0;
+	cin >> selectedOption;
+	cin.ignore ( std::numeric_limits<std::streamsize>::max(), '\n' ); 
+
+	return selectedOption;
 }
-}while(choice!=7);
-return 0;
+
+
+void addBook() {
+	string bookTitle, bookAuthor, bookDetail, line;
+	int count = 0;
+
+	cout << endl << "--- Provide Book Details ---" << endl;
+	cout << "Title: ";
+	getline(cin, bookTitle);
+	cout << "Author: ";
+	getline(cin, bookAuthor);
+
+	// reading file for number of books
+	ifstream countData("library.dat");
+	while (getline(countData, line)) {
+		count++;
+	}
+
+	countData.close();
+
+	// open file for writing
+	ofstream writeToLibrary;
+
+    writeToLibrary.open("library.dat", ios::app);
+
+	bookDetail = to_string(count) + ", " + bookTitle + ", " + bookAuthor;
+
+	// write
+	writeToLibrary << bookDetail << endl;
+
+	// close the opened file.
+    writeToLibrary.close();
+	
+   	cout << "Book added: " << bookDetail << endl; 
 }
-Account::Account(string fname,string lname,float balance)
-{
-NextAccountNumber++;
-accountNumber=NextAccountNumber;
-firstName=fname;
-lastName=lname;
-this->balance=balance;
+
+
+void UpdateBook() {
+	cout << endl << "--- Update Book ---" << endl;
+	string id;
+	cout << "Enter Book ID: ";
+	cin >> id;
+	cin.ignore ( std::numeric_limits<std::streamsize>::max(), '\n' ); 
+
+	bool bookExist = false;
+	ifstream data("library.dat");
+	ofstream temp;
+	temp.open("temp.dat", ios::app); //Temporary file
+
+	if(!data || !temp)
+    {
+        cout << "Error opening files!" << endl;
+        return;
+    }
+
+	string strTemp;
+    while(getline(data, strTemp))
+    {   
+		size_t found = strTemp.find(id); 
+		if (found != string::npos) {
+			string title, author;
+
+			cout << "Book: " << strTemp << endl; 
+
+			cout << "New Book Title: ";
+			getline(cin, title);
+			cout << "New Book Author: ";
+			getline(cin, author);
+
+			strTemp = id + ", " + title + ", " + author;
+			bookExist = true;
+		}
+		temp << strTemp << endl;
+	}
+
+	data.close();
+	temp.close();
+
+	if(bookExist) {
+		// delete old file
+		if( remove( "library.dat" ) != 0 )
+			perror( "Error deleting file" );
+
+		// rename new file to old file
+		if ( rename("temp.dat", "library.dat")) {
+			perror("Error renaming");
+			return;
+		}
+
+		cout << "Book Details Updated" << endl; 
+
+	} else cout << "No book found with ID " << id << endl;
 }
-void Account::Deposit(float amount)
-{
-balance+=amount;
+
+
+void DeleteBook() {
+	cout << endl << "--- Delete Book ---" << endl;
+	string id;
+	cout << "Enter Book ID: ";
+	cin >> id;
+	cin.ignore ( std::numeric_limits<std::streamsize>::max(), '\n' ); 
+
+	bool bookExist = false;
+	ifstream data("library.dat");
+	ofstream temp;
+	temp.open("temp.dat", ios::app); //Temporary file
+
+	if(!data || !temp)
+    {
+        cout << "Error opening files!" << endl;
+        return;
+    }
+
+	string strTemp;
+	bool delBook = false;
+    while(getline(data, strTemp))
+    {   
+		size_t found = strTemp.find(id); 
+		if (found != string::npos) {
+			cout << "Book: " << strTemp << endl; 
+			bookExist = true;
+			delBook = true;
+		}
+		if(delBook) {
+			delBook = false;
+			continue;
+		}
+		temp << strTemp << endl;
+	}
+
+	data.close();
+	temp.close();
+
+	if(bookExist) {
+
+		// delete old file
+		if( remove( "library.dat" ) != 0 )
+			perror( "Error deleting file" );
+
+		// rename new file to old file
+		if ( rename("temp.dat", "library.dat")) {
+			perror("Error renaming");
+			return;
+		}
+
+		cout << "Book Deleted" << endl; 
+
+	} else cout << "No book found with ID " << id << endl;
 }
-void Account::Withdraw(float amount)
-{
-if(balance-amount<MIN_BALANCE)
-throw InsufficientFunds();
-balance-=amount;
+
+
+void showBooks() {
+	cout << "--- List of books ---" << endl;
+
+	ifstream data("library.dat");
+    string row;
+    while(getline(data, row))
+    {   
+        cout << row << endl;
+    }
 }
-void Account::setLastAccountNumber(long accountNumber)
-{
-NextAccountNumber=accountNumber;
+
+
+void bookActions(int option) {
+	switch(option) {
+		case 1: 
+			addBook();
+			break;
+		case 2: 
+			UpdateBook();
+			break;
+		case 3: 
+			DeleteBook();
+			break;
+		case 4: 
+			showBooks();
+			break;
+	}
 }
-long Account::getLastAccountNumber()
-{
-return NextAccountNumber;
+
+
+void home () {
+	int option = bookOptions();
+	if (option != 0 && option <= 4) {
+		bookActions(option);
+	} else if (option > 4) {
+		cout << endl << "!!! Enter Valid Option !!!" << endl;
+		option = bookOptions();
+	} else {
+	 	exit(0);
+	}
 }
-ofstream & operator<<(ofstream &ofs,Account &acc)
-{
-ofs<<acc.accountNumber<<endl;
-ofs<<acc.firstName<<endl;
-ofs<<acc.lastName<<endl;
-ofs<<acc.balance<<endl;
-return ofs;
-}
-ifstream & operator>>(ifstream &ifs,Account &acc)
-{
-ifs>>acc.accountNumber;
-ifs>>acc.firstName;
-ifs>>acc.lastName;
-ifs>>acc.balance;
-return ifs;
-}
-ostream & operator<<(ostream &os,Account &acc)
-{
-os<<"First Name:"<<acc.getFirstName()<<endl;
-os<<"Last Name:"<<acc.getLastName()<<endl;
-os<<"Account Number:"<<acc.getAccNo()<<endl;
-os<<"Balance:"<<acc.getBalance()<<endl;
-return os;
-}
-Bank::Bank()
-{
-Account account;
-ifstream infile;
-infile.open("Bank.data");
-if(!infile)
-{
-//cout<<"Error in Opening! File Not Found!!"<<endl;
-return;
-}
-while(!infile.eof())
-{
-infile>>account;
-accounts.insert(pair<long,Account>(account.getAccNo(),account));
-}
-Account::setLastAccountNumber(account.getAccNo());
-infile.close();
-}
-Account Bank::OpenAccount(string fname,string lname,float balance)
-{
-ofstream outfile;
-Account account(fname,lname,balance);
-accounts.insert(pair<long,Account>(account.getAccNo(),account));
-outfile.open("Bank.data", ios::trunc);
-map<long,Account>::iterator itr;
-for(itr=accounts.begin();itr!=accounts.end();itr++)
-{
-outfile<<itr->second;
-}
-outfile.close();
-return account;
-}
-Account Bank::BalanceEnquiry(long accountNumber)
-{
-map<long,Account>::iterator itr=accounts.find(accountNumber);
-return itr->second;
-}
-Account Bank::Deposit(long accountNumber,float amount)
-{
-map<long,Account>::iterator itr=accounts.find(accountNumber);
-itr->second.Deposit(amount);
-return itr->second;
-}
-Account Bank::Withdraw(long accountNumber,float amount)
-{
-map<long,Account>::iterator itr=accounts.find(accountNumber);
-itr->second.Withdraw(amount);
-return itr->second;
-}
-void Bank::CloseAccount(long accountNumber)
-{
-map<long,Account>::iterator itr=accounts.find(accountNumber);
-cout<<"Account Deleted"<<itr->second;
-accounts.erase(accountNumber);
-}
-void Bank::ShowAllAccounts()
-{
-map<long,Account>::iterator itr;
-for(itr=accounts.begin();itr!=accounts.end();itr++)
-{
-cout<<"Account "<<itr->first<<endl<<itr->second<<endl;
-}
-}
-Bank::~Bank()
-{
-ofstream outfile;
-outfile.open("Bank.data", ios::trunc);
-map<long,Account>::iterator itr;
-for(itr=accounts.begin();itr!=accounts.end();itr++)
-{
-outfile<<itr->second;
-}
-outfile.close();
+
+
+int main () {
+	cout << "*** WELCOME ***";
+	string yn;
+	while(true) {
+		cout << endl << "--- Library Management System ---" << endl;
+		home();
+		cout << endl << "continue? (y/n) :";
+		cin >> yn;
+		if(yn != "y") break;
+	}
+	return 0;
 }
